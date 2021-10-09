@@ -1,11 +1,11 @@
-def subgraph(A,i,j):
-    "This returns the i, j component of the subgraph centrality matrix"
+def subgraph(A):
+    "This returns the subgraph centrality matrix"
     from numpy import linalg as LA
     w, v = LA.eig(A)
     w=[l/max(w,key=abs) for l in w]
     expdiag=[np.exp(l) for l in w]
     intermediate=np.matmul(v,np.diag(expdiag))
     subgraphmat=np.matmul(intermediate,np.linalg.inv(v))
-
-    print(subgraphmat[i,j])
-    return;
+    subgraphmat=subgraphmat.real
+    return subgraphmat;
+   
