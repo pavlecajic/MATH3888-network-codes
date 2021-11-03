@@ -1,0 +1,332 @@
+from sklearn.cluster import KMeans, SpectralClustering
+from matplotlib import colors, cm
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
+def cluster_alg(G, alg_type='kmeans', num_clusters=20, cleaned=True, print_results=True):
+    adj_matrix = nx.adjacency_matrix(G)
+    if not cleaned:
+        adj_matrix /= 1000 # Normalize for faster processing
+    # if print_results:
+    #     print("Adjacency matrix:\n" + str(adj_matrix))
+
+    k_clusters = num_clusters
+    results = []
+    algorithm = {}
+
+    if alg_type == "kmeans":
+        algorithm['kmeans'] = KMeans(n_clusters=k_clusters)
+    elif alg_type == "spectral":
+        algorithm['spectral'] = SpectralClustering(n_clusters=k_clusters, affinity="precomputed")  # no init
+    for model in algorithm.values():
+        model.fit(adj_matrix)
+        results.append(list(model.labels_))
+    if print_results:
+        if alg_type == "kmeans":
+            print("K-means clustering algorithm (which community each protein is in):\n" + str(results[0]))
+        elif alg_type == "spectral":
+            print("Spectral clustering algorithm (which community each protein is in):\n" + str(results[0]))
+
+    return results[0], algorithm
+
+
+def draw_communities(G, membership, num_clusters=20):
+    # membership = algorithms['kmeans'].labels_
+    pos = nx.spring_layout(G)
+    fig, ax = plt.subplots(figsize=(16, 9))
+
+    # Convert membership list to a dict where key=club, value=list of students in club
+    club_dict = defaultdict(list)
+    for student, club in enumerate(membership):
+        club_dict[club].append(student)
+
+    # Normalize number of clubs for choosing a color
+    norm = colors.Normalize(vmin=0, vmax=len(club_dict.keys()))
+
+    for club, members in club_dict.items():
+        nx.draw_networkx_nodes(G, pos,
+                               nodelist=members,
+                               node_color=cm.jet(norm(club)),
+                               node_size=500,
+                               alpha=0.8,
+                               ax=ax)
+
+    # Draw edges (social connections) and show final plot
+    plt.title("Graph with " + str(num_clusters) + " clusters")
+    nx.draw_networkx_edges(G, pos, alpha=0.5, ax=ax)
+    plt.show()
+
+def run_experiment(G, sod1_index, proteins, node_frequencies={}, alg_type='kmeans', num_clusters=20, cleaned=True, print_results=True):
+    # Use k-means or spectral clustering algorithm
+    results, algorithms = cluster_alg(G, alg_type, num_clusters, cleaned, print_results)
+
+    # Make results able to look up specific proteins
+    indices = [i for i in range(len(results))]
+    results = list(zip(results, indices))
+
+    # Sort nodes by cluster
+    clusters = {}
+    for tup in results:
+        cluster = tup[0]
+        index = tup[1]
+        if cluster not in clusters:
+            clusters[cluster] = [index]
+        else:
+            clusters[cluster].append(index)
+    if print_results:
+        print("Clusters (which proteins are in each community):\n" + str(clusters))
+    assert len(clusters) == num_clusters
+
+    # Find the cluster which SOD1 is in
+    for c in clusters:
+        if clusters[c].count(sod1_index) > 0:
+            sod1_community = c
+            sod1_cluster = clusters[c]
+        # if print_results:
+        #     print("Community " + str(c) + " has " + str(len(clusters[c])) + " proteins")
+    if print_results:
+        print("SOD1 is in community no. " + str(sod1_community))
+
+    # Get nodes in same community as SOD1
+    same_community = []
+    for node in sod1_cluster:
+        protein = list(proteins.keys())[node]
+        same_community.append("4932." + protein)
+    if print_results:
+        print("Proteins in community no. " + str(sod1_community) + ": " + str(same_community))
+        print("Size of community no. " + str(sod1_community) + ": " + str(len(sod1_cluster)) + "\n")
+
+    for node in same_community:
+        if node not in node_frequencies:
+            node_frequencies[node] = 1
+        else:
+            node_frequencies[node] += 1
+
+    return nodefrom sklearn.cluster import KMeans, SpectralClustering
+from matplotlib import colors, cm
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
+def cluster_alg(G, alg_type='kmeans', num_clusters=20, cleaned=True, print_results=True):
+    adj_matrix = nx.adjacency_matrix(G)
+    if not cleaned:
+        adj_matrix /= 1000 # Normalize for faster processing
+    # if print_results:
+    #     print("Adjacency matrix:\n" + str(adj_matrix))
+
+    k_clusters = num_clusters
+    results = []
+    algorithm = {}
+
+    if alg_type == "kmeans":
+        algorithm['kmeans'] = KMeans(n_clusters=k_clusters)
+    elif alg_type == "spectral":
+        algorithm['spectral'] = SpectralClustering(n_clusters=k_clusters, affinity="precomputed")  # no init
+    for model in algorithm.values():
+        model.fit(adj_matrix)
+        results.append(list(model.labels_))
+    if print_results:
+        if alg_type == "kmeans":
+            print("K-means clustering algorithm (which community each protein is in):\n" + str(results[0]))
+        elif alg_type == "spectral":
+            print("Spectral clustering algorithm (which community each protein is in):\n" + str(results[0]))
+
+    return results[0], algorithm
+
+
+def draw_communities(G, membership, num_clusters=20):
+    # membership = algorithms['kmeans'].labels_
+    pos = nx.spring_layout(G)
+    fig, ax = plt.subplots(figsize=(16, 9))
+
+    # Convert membership list to a dict where key=club, value=list of students in club
+    club_dict = defaultdict(list)
+    for student, club in enumerate(membership):
+        club_dict[club].append(student)
+
+    # Normalize number of clubs for choosing a color
+    norm = colors.Normalize(vmin=0, vmax=len(club_dict.keys()))
+
+    for club, members in club_dict.items():
+        nx.draw_networkx_nodes(G, pos,
+                               nodelist=members,
+                               node_color=cm.jet(norm(club)),
+                               node_size=500,
+                               alpha=0.8,
+                               ax=ax)
+
+    # Draw edges (social connections) and show final plot
+    plt.title("Graph with " + str(num_clusters) + " clusters")
+    nx.draw_networkx_edges(G, pos, alpha=0.5, ax=ax)
+    plt.show()
+
+def run_experiment(G, sod1_index, proteins, node_frequencies={}, alg_type='kmeans', num_clusters=20, cleaned=True, print_results=True):
+    # Use k-means or spectral clustering algorithm
+    results, algorithms = cluster_alg(G, alg_type, num_clusters, cleaned, print_results)
+
+    # Make results able to look up specific proteins
+    indices = [i for i in range(len(results))]
+    results = list(zip(results, indices))
+
+    # Sort nodes by cluster
+    clusters = {}
+    for tup in results:
+        cluster = tup[0]
+        index = tup[1]
+        if cluster not in clusters:
+            clusters[cluster] = [index]
+        else:
+            clusters[cluster].append(index)
+    if print_results:
+        print("Clusters (which proteins are in each community):\n" + str(clusters))
+    assert len(clusters) == num_clusters
+
+    # Find the cluster which SOD1 is in
+    for c in clusters:
+        if clusters[c].count(sod1_index) > 0:
+            sod1_community = c
+            sod1_cluster = clusters[c]
+        # if print_results:
+        #     print("Community " + str(c) + " has " + str(len(clusters[c])) + " proteins")
+    if print_results:
+        print("SOD1 is in community no. " + str(sod1_community))
+
+    # Get nodes in same community as SOD1
+    same_community = []
+    for node in sod1_cluster:
+        protein = list(proteins.keys())[node]
+        same_community.append("4932." + protein)
+    if print_results:
+        print("Proteins in community no. " + str(sod1_community) + ": " + str(same_community))
+        print("Size of community no. " + str(sod1_community) + ": " + str(len(sod1_cluster)) + "\n")
+
+    for node in same_community:
+        if node not in node_frequencies:
+            node_frequencies[node] = 1
+        else:
+            node_frequencies[node] += 1
+
+    return node_frequencies
+
+
+def robust_communities():
+    # Keep count of no. of frequencies each node in SOD1's community appears after all experiments
+    node_frequencies = {}
+    for i in range(num_experiments):
+        if i == 0 or (i + 1) % 10 == 0 or i == num_experiments - 1:
+            print("##### Running experiment " + str(i + 1) + "/" + str(num_experiments) + "... #####")
+        node_frequencies = run_experiment(G, sod1_index, proteins, node_frequencies, alg_type, num_clusters, cleaned,
+                                          print_results)
+
+    # Find threshold to keep track of most frequent nodes in SOD1's community
+    print("##### Results #####")
+    print("Frequencies of nodes in SOD1's community after " + str(num_experiments) + " experiments: " + str(
+        node_frequencies))
+    print("Community of proteins: " + str(list(node_frequencies.keys())))
+    print("Size of community: " + str(len(list(node_frequencies.keys()))))
+
+    lengths = []
+    for i in range(num_experiments):
+        freq_dict_filtered = dict((k, v) for k, v in node_frequencies.items() if v > i)
+        lengths.append(len(freq_dict_filtered))
+    plt.plot(lengths)
+    plt.title("Lengths:")
+    plt.show()
+
+    freq_filtered = {}
+    for f in node_frequencies:
+        if node_frequencies[f] >= num_experiments * (3 / 4):
+            freq_filtered[f] = node_frequencies[f]
+    print(
+        "Frequencies of proteins in SOD1's community after " + str(num_experiments) + " experiments (filtered): " + str(
+            freq_filtered))
+
+    print("Proteins in SOD1's community (filtered): " + str(list(freq_filtered.keys())))
+    print("Size of community (filtered): " + str(len(list(freq_filtered.keys()))) + "\n")
+
+
+def pageRank(G):
+    # Get most important nodes according to Page Rank
+    measure = nx.pagerank(G)
+    vals = [[measure[k], k] for k in measure.keys()]
+    vals.sort(reverse=True)
+    print("\n Centrality Measure: Page Rank")
+    for index, pair in enumerate(vals):
+        value = pair[0]
+        protein = pair[1]
+        if protein == "4932.YJR104C":
+            print("No. " + str(index + 1) + ": protein " + protein + " has value " + str(value))
+        # else:
+        #     print("Not SOD1", end=", ")
+    for index, pair in enumerate(vals[:10]):
+        print(str(index + 1), ": \t is node ", pair[1], " with value:\t", pair[0])
+
+    # generate array of the centrality measure
+    G_plot = G
+    PageRankS = list(nx.pagerank(G_plot).values())
+    plt.title("Centrality measure for all nodes")
+    plt.plot(PageRankS)
+    plt.show()_frequencies
+
+
+
+
+
+def robust_communities():
+    # Keep count of no. of frequencies each node in SOD1's community appears after all experiments
+    node_frequencies = {}
+    for i in range(num_experiments):
+        if i == 0 or (i + 1) % 10 == 0 or i == num_experiments - 1:
+            print("##### Running experiment " + str(i + 1) + "/" + str(num_experiments) + "... #####")
+        node_frequencies = run_experiment(G, sod1_index, proteins, node_frequencies, alg_type, num_clusters, cleaned,
+                                          print_results)
+
+    # Find threshold to keep track of most frequent nodes in SOD1's community
+    print("##### Results #####")
+    print("Frequencies of nodes in SOD1's community after " + str(num_experiments) + " experiments: " + str(
+        node_frequencies))
+    print("Community of proteins: " + str(list(node_frequencies.keys())))
+    print("Size of community: " + str(len(list(node_frequencies.keys()))))
+
+    lengths = []
+    for i in range(num_experiments):
+        freq_dict_filtered = dict((k, v) for k, v in node_frequencies.items() if v > i)
+        lengths.append(len(freq_dict_filtered))
+    plt.plot(lengths)
+    plt.title("Lengths:")
+    plt.show()
+
+    freq_filtered = {}
+    for f in node_frequencies:
+        if node_frequencies[f] >= num_experiments * (3 / 4):
+            freq_filtered[f] = node_frequencies[f]
+    print(
+        "Frequencies of proteins in SOD1's community after " + str(num_experiments) + " experiments (filtered): " + str(
+            freq_filtered))
+
+    print("Proteins in SOD1's community (filtered): " + str(list(freq_filtered.keys())))
+    print("Size of community (filtered): " + str(len(list(freq_filtered.keys()))) + "\n")
+
+
+def pageRank(G):
+    # Get most important nodes according to Page Rank
+    measure = nx.pagerank(G)
+    vals = [[measure[k], k] for k in measure.keys()]
+    vals.sort(reverse=True)
+    print("\n Centrality Measure: Page Rank")
+    for index, pair in enumerate(vals):
+        value = pair[0]
+        protein = pair[1]
+        if protein == "4932.YJR104C":
+            print("No. " + str(index + 1) + ": protein " + protein + " has value " + str(value))
+        # else:
+        #     print("Not SOD1", end=", ")
+    for index, pair in enumerate(vals[:10]):
+        print(str(index + 1), ": \t is node ", pair[1], " with value:\t", pair[0])
+
+    # generate array of the centrality measure
+    G_plot = G
+    PageRankS = list(nx.pagerank(G_plot).values())
+    plt.title("Centrality measure for all nodes")
+    plt.plot(PageRankS)
+    plt.show()
